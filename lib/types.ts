@@ -13,6 +13,7 @@ export interface CrawlResult {
   esIndexable: boolean;
   inlinks: number;
   discoveredFrom: string | null;
+  basePath: string | null; // Base path without language prefix for grouping
 }
 
 export interface CrawlSession {

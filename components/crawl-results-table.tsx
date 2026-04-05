@@ -28,7 +28,7 @@ export function CrawlResultsTable({
   const [search, setSearch] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "lang", desc: false },
+    { id: "basePath", desc: false },
   ]);
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
   const [indexableFilter, setIndexableFilter] = useState<boolean | null>(null);
@@ -48,6 +48,22 @@ export function CrawlResultsTable({
     }
     return [...langs].sort();
   }, [results]);
+
+  // Extract base path for grouping (removes language prefix like /ca/, /en/, etc.)
+  const getBasePath = (url: string): string => {
+    try {
+      const parsed = new URL(url);
+      const pathParts = parsed.pathname.split('/').filter(Boolean);
+      // Remove language prefix if it's a language code
+      const langCodes = ['es', 'ca', 'en', 'fr', 'de', 'it', 'pt'];
+      if (pathParts.length > 0 && langCodes.includes(pathParts[0])) {
+        return pathParts.slice(1).join('/');
+      }
+      return parsed.pathname;
+    } catch {
+      return url;
+    }
+  };
 
   const resetPage = () => setPageIndex(0);
 
