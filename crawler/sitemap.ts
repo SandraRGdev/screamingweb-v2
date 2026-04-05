@@ -57,12 +57,16 @@ export async function fetchSitemap(
  */
 function extractTags(xml: string, tag: string): string[] {
   const urls: string[] = [];
+  const seen = new Set<string>();
   const regex = new RegExp(`<${tag}[^>]*>([^<]+)</${tag}>`, "gi");
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(xml)) !== null) {
     const value = match[1].trim();
-    if (value) urls.push(value);
+    if (value && !seen.has(value)) {
+      seen.add(value);
+      urls.push(value);
+    }
   }
 
   return urls;

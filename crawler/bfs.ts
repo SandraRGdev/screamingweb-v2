@@ -75,6 +75,7 @@ export async function* crawlGenerator(
     if (robots && !robots.isAllowed(normalized)) continue;
 
     visited.add(normalized);
+    queued.delete(normalized);
 
     // Respect crawl-delay
     if (crawlDelay > 0) {
@@ -101,6 +102,7 @@ export async function* crawlGenerator(
         });
       }
     }
+    queued.delete(normalized);
   }
 }
 
