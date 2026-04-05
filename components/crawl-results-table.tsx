@@ -27,7 +27,9 @@ export function CrawlResultsTable({
 }) {
   const [search, setSearch] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "lang", desc: false },
+  ]);
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
   const [indexableFilter, setIndexableFilter] = useState<boolean | null>(null);
   const [langFilter, setLangFilter] = useState<string | null>(null);
