@@ -18,7 +18,7 @@ export const columns: ColumnDef<CrawlResult>[] = [
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline truncate max-w-[300px] block"
+          className="text-primary hover:underline truncate max-w-[300px] block"
         >
           {url}
         </a>
@@ -28,7 +28,7 @@ export const columns: ColumnDef<CrawlResult>[] = [
   {
     accessorKey: "status",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title="Estado" />
     ),
     cell: ({ row }) => {
       const status = row.getValue("status") as number;
@@ -42,13 +42,13 @@ export const columns: ColumnDef<CrawlResult>[] = [
   {
     accessorKey: "depth",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Depth" />
+      <DataTableColumnHeader column={column} title="Profundidad" />
     ),
   },
   {
     accessorKey: "title",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Title" />
+      <DataTableColumnHeader column={column} title="Título" />
     ),
     cell: ({ row }) => {
       const title = row.getValue("title") as string | null;
@@ -56,6 +56,20 @@ export const columns: ColumnDef<CrawlResult>[] = [
         <span className="truncate max-w-[200px] block">
           {title || "—"}
         </span>
+      );
+    },
+  },
+  {
+    accessorKey: "lang",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Idioma" />
+    ),
+    cell: ({ row }) => {
+      const lang = row.getValue("lang") as string | null;
+      return (
+        <Badge variant={lang ? "default" : "secondary"}>
+          {lang || "—"}
+        </Badge>
       );
     },
   },
@@ -68,7 +82,7 @@ export const columns: ColumnDef<CrawlResult>[] = [
       const indexable = row.getValue("esIndexable") as boolean;
       return (
         <Badge variant={indexable ? "default" : "secondary"}>
-          {indexable ? "Yes" : "No"}
+          {indexable ? "Sí" : "No"}
         </Badge>
       );
     },
@@ -76,7 +90,7 @@ export const columns: ColumnDef<CrawlResult>[] = [
   {
     accessorKey: "inlinks",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Inlinks" />
+      <DataTableColumnHeader column={column} title="Enlaces entrantes" />
     ),
   },
 ];

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ScreamingWeb — SEO Crawler",
-  description: "Browser-based SEO crawler for discovering internal HTML URLs",
+  title: "ScreamingWeb — Rastreador SEO",
+  description: "Rastreador SEO basado en navegador para descubrir URLs internas",
 };
 
 export default function RootLayout({
@@ -25,10 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-white">
         <Providers>{children}</Providers>
       </body>
     </html>

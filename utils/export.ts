@@ -22,6 +22,8 @@ export function exportAsCsv(results: CrawlResult[]): string {
     "Title",
     "Canonical",
     "Meta Robots",
+    "Lang",
+    "Hreflang",
     "Indexable",
     "Inlinks",
   ];
@@ -43,6 +45,8 @@ export function exportAsCsv(results: CrawlResult[]): string {
       escape(r.title),
       escape(r.canonical),
       escape(r.metaRobots),
+      escape(r.lang || ""),
+      escape(r.hreflang.map((h) => `${h.lang}:${h.href}`).join(" | ")),
       escape(r.esIndexable ? "Yes" : "No"),
       escape(r.inlinks),
     ].join(","),

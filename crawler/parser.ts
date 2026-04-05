@@ -49,6 +49,22 @@ export function parseHtml(
     }
   });
 
+  // Extract <html lang="...">
+  const lang = $("html").attr("lang")?.trim() || null;
+
+  // Extract <link rel="alternate" hreflang="...">
+  const hreflang: { lang: string; href: string }[] = [];
+  $('link[rel="alternate"][hreflang]').each((_, el) => {
+    const hreflangCode = $(el).attr("hreflang")?.trim();
+    const hrefRaw = $(el).attr("href");
+    if (hreflangCode && hrefRaw) {
+      const resolved = resolveUrl(hrefRaw, result.url);
+      if (resolved) {
+        hreflang.push({ lang: hreflangCode, href: resolved });
+      }
+    }
+  });
+
   return {
     url: result.url,
     status: result.status,
@@ -57,6 +73,8 @@ export function parseHtml(
     title,
     canonical,
     metaRobots,
+    lang,
+    hreflang,
     internalLinks: [...new Set(internalLinks)],
     externalLinks: [...new Set(externalLinks)],
   };

@@ -5,6 +5,7 @@ import { type SortingState } from "@tanstack/react-table";
 import { DataTable } from "./table/data-table";
 import { columns } from "./table/columns";
 import { TableToolbar } from "./table/table-toolbar";
+import { TableFilters } from "./table/table-filters";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
@@ -27,17 +28,57 @@ export function CrawlResultsTable({
   const [search, setSearch] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [statusFilter, setStatusFilter] = useState<number | null>(null);
+  const [indexableFilter, setIndexableFilter] = useState<boolean | null>(null);
+  const [langFilter, setLangFilter] = useState<string | null>(null);
   const { exportCsv, exportJson } = useExport(seedUrl);
 
+  const uniqueStatuses = useMemo(
+    () => [...new Set(results.map((r) => r.status))].sort((a, b) => a - b),
+    [results],
+  );
+
+  const uniqueLangs = useMemo(() => {
+    const langs = new Set<string>();
+    for (const r of results) {
+      if (r.lang) langs.add(r.lang);
+      for (const h of r.hreflang) langs.add(h.lang);
+    }
+    return [...langs].sort();
+  }, [results]);
+
+  const resetPage = () => setPageIndex(0);
+
   const filteredData = useMemo(() => {
-    if (!search) return results;
-    const q = search.toLowerCase();
-    return results.filter(
-      (row) =>
-        row.url.toLowerCase().includes(q) ||
-        (row.title?.toLowerCase().includes(q) ?? false),
-    );
-  }, [results, search]);
+    let data = results;
+
+    if (search) {
+      const q = search.toLowerCase();
+      data = data.filter(
+        (row) =>
+          row.url.toLowerCase().includes(q) ||
+          (row.title?.toLowerCase().includes(q) ?? false),
+      );
+    }
+
+    if (statusFilter !== null) {
+      data = data.filter((row) => row.status === statusFilter);
+    }
+
+    if (indexableFilter !== null) {
+      data = data.filter((row) => row.esIndexable === indexableFilter);
+    }
+
+    if (langFilter !== null) {
+      data = data.filter(
+        (row) =>
+          row.lang === langFilter ||
+          row.hreflang.some((h) => h.lang === langFilter),
+      );
+    }
+
+    return data;
+  }, [results, search, statusFilter, indexableFilter, langFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
   const safePageIndex = Math.min(pageIndex, totalPages - 1);
@@ -47,17 +88,43 @@ export function CrawlResultsTable({
     (safePageIndex + 1) * PAGE_SIZE,
   );
 
+  const handleCopyUrls = async () => {
+    const urls = filteredData.map((r) => r.url).join("\n");
+    await navigator.clipboard.writeText(urls);
+  };
+
+  const clearFilters = () => {
+    setStatusFilter(null);
+    setIndexableFilter(null);
+    setLangFilter(null);
+    resetPage();
+  };
+
   return (
     <div className="space-y-4">
       <TableToolbar
         search={search}
         onSearchChange={(v) => {
           setSearch(v);
-          setPageIndex(0);
+          resetPage();
         }}
         resultCount={filteredData.length}
         onExportCsv={() => exportCsv(filteredData)}
         onExportJson={() => exportJson(filteredData)}
+        onCopyUrls={handleCopyUrls}
+        filters={
+          <TableFilters
+            statusFilter={statusFilter}
+            onStatusFilterChange={(v) => { setStatusFilter(v); resetPage(); }}
+            uniqueStatuses={uniqueStatuses}
+            indexableFilter={indexableFilter}
+            onIndexableFilterChange={(v) => { setIndexableFilter(v); resetPage(); }}
+            langFilter={langFilter}
+            onLangFilterChange={(v) => { setLangFilter(v); resetPage(); }}
+            uniqueLangs={uniqueLangs}
+            onClearFilters={clearFilters}
+          />
+        }
       />
 
       <DataTable
@@ -85,7 +152,7 @@ export function CrawlResultsTable({
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-sm px-2" aria-live="polite">
-          Page {safePageIndex + 1} of {totalPages}
+          Página {safePageIndex + 1} de {totalPages}
         </span>
         <Button
           variant="outline"

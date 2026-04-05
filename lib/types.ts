@@ -8,6 +8,8 @@ export interface CrawlResult {
   title: string | null;
   canonical: string | null;
   metaRobots: string | null;
+  lang: string | null;
+  hreflang: { lang: string; href: string }[];
   esIndexable: boolean;
   inlinks: number;
   discoveredFrom: string | null;

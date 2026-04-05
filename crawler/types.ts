@@ -30,6 +30,11 @@ export interface FetchResult {
   url: string;
 }
 
+export interface HreflangEntry {
+  lang: string;
+  href: string;
+}
+
 export interface ParsedResult {
   url: string;
   status: number;
@@ -38,6 +43,8 @@ export interface ParsedResult {
   title: string | null;
   canonical: string | null;
   metaRobots: string | null;
+  lang: string | null;
+  hreflang: HreflangEntry[];
   internalLinks: string[];
   externalLinks: string[];
 }

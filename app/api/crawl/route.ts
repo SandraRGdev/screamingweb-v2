@@ -80,6 +80,8 @@ export async function POST(req: NextRequest) {
             title: page.title,
             canonical: page.canonical,
             metaRobots: page.metaRobots,
+            lang: page.lang,
+            hreflang: page.hreflang,
             esIndexable: isIndexable(page.metaRobots),
             inlinks: inlinksMap.get(page.url) || 0,
             discoveredFrom: null,

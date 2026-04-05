@@ -3,7 +3,7 @@ import { parseHtml, isIndexable } from "@/crawler/parser";
 import type { FetchResult } from "@/crawler/types";
 
 const baseHtml: FetchResult = {
-  html: '<html><head><title>Test Page</title><link rel="canonical" href="https://example.com/canonical" /></head><body><a href="/page1">Internal</a><a href="https://other.com">External</a></body></html>',
+  html: '<html lang="en"><head><title>Test Page</title><link rel="canonical" href="https://example.com/canonical" /></head><body><a href="/page1">Internal</a><a href="https://other.com">External</a></body></html>',
   status: 200,
   contentType: "text/html",
   url: "https://example.com",
@@ -83,6 +83,56 @@ describe("parseHtml", () => {
     const result = parseHtml(emptyHtml, 0, "example.com");
     expect(result.title).toBe("Empty");
     expect(result.internalLinks).toHaveLength(0);
+  });
+
+  it("extracts html lang attribute", () => {
+    const result = parseHtml(baseHtml, 0, "example.com");
+    expect(result.lang).toBe("en");
+  });
+
+  it("returns null lang when absent", () => {
+    const noLang: FetchResult = {
+      ...baseHtml,
+      html: "<html><head><title>No Lang</title></head><body></body></html>",
+    };
+    const result = parseHtml(noLang, 0, "example.com");
+    expect(result.lang).toBeNull();
+  });
+
+  it("extracts hreflang links", () => {
+    const hreflangHtml: FetchResult = {
+      ...baseHtml,
+      html: '<html lang="es"><head><title>Multilang</title><link rel="alternate" hreflang="en" href="https://example.com/en" /><link rel="alternate" hreflang="fr" href="https://example.com/fr" /></head><body></body></html>',
+    };
+    const result = parseHtml(hreflangHtml, 0, "example.com");
+    expect(result.hreflang).toHaveLength(2);
+    expect(result.hreflang[0]).toEqual({ lang: "en", href: "https://example.com/en" });
+    expect(result.hreflang[1]).toEqual({ lang: "fr", href: "https://example.com/fr" });
+  });
+
+  it("resolves relative hreflang URLs", () => {
+    const relativeHtml: FetchResult = {
+      ...baseHtml,
+      html: '<html lang="es"><head><title>Relative</title><link rel="alternate" hreflang="en" href="/en/page" /></head><body></body></html>',
+    };
+    const result = parseHtml(relativeHtml, 0, "example.com");
+    expect(result.hreflang).toHaveLength(1);
+    expect(result.hreflang[0].href).toBe("https://example.com/en/page");
+  });
+
+  it("returns empty hreflang when absent", () => {
+    const result = parseHtml(baseHtml, 0, "example.com");
+    expect(result.hreflang).toEqual([]);
+  });
+
+  it("handles x-default hreflang", () => {
+    const xDefaultHtml: FetchResult = {
+      ...baseHtml,
+      html: '<html lang="es"><head><title>XDefault</title><link rel="alternate" hreflang="x-default" href="https://example.com" /></head><body></body></html>',
+    };
+    const result = parseHtml(xDefaultHtml, 0, "example.com");
+    expect(result.hreflang).toHaveLength(1);
+    expect(result.hreflang[0].lang).toBe("x-default");
   });
 });
 
