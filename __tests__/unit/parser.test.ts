@@ -61,10 +61,10 @@ describe("parseHtml", () => {
     expect(result.internalLinks).toHaveLength(0);
   });
 
-  it("skips whitespace-only encoded links", () => {
+  it("skips whitespace-only and malformed encoded links", () => {
     const blankHtml: FetchResult = {
       ...baseHtml,
-      html: '<html><body><a href="%20">Blank</a><a href="/%20">Blank2</a></body></html>',
+      html: '<html><body><a href="%20">Blank</a><a href="/%20">Blank2</a><a href="link to Mirai">Broken</a><a href="/work-with-us/http//policies.google.com/privacy">Broken2</a></body></html>',
     };
     const result = parseHtml(blankHtml, 0, "example.com");
     expect(result.internalLinks).toHaveLength(0);

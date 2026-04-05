@@ -5,7 +5,7 @@ import {
   isSameDomain,
   isBlockedExtension,
   resolveUrl,
-  isWhitespaceOnlyHref,
+  isInvalidHref,
   isHtmlContentType,
   isPrivateHostname,
   isSafeUrl,
@@ -120,20 +120,25 @@ describe("resolveUrl", () => {
   });
 });
 
-describe("isWhitespaceOnlyHref", () => {
+describe("isInvalidHref", () => {
   it("returns true for empty hrefs", () => {
-    expect(isWhitespaceOnlyHref("")).toBe(true);
-    expect(isWhitespaceOnlyHref("   ")).toBe(true);
+    expect(isInvalidHref("")).toBe(true);
+    expect(isInvalidHref("   ")).toBe(true);
   });
 
   it("returns true for encoded whitespace links", () => {
-    expect(isWhitespaceOnlyHref("%20")).toBe(true);
-    expect(isWhitespaceOnlyHref("/%20")).toBe(true);
+    expect(isInvalidHref("%20")).toBe(true);
+    expect(isInvalidHref("/%20")).toBe(true);
+  });
+
+  it("returns true for raw whitespace and malformed protocol-like hrefs", () => {
+    expect(isInvalidHref("link to Mirai")).toBe(true);
+    expect(isInvalidHref("http//policies.google.com/privacy")).toBe(true);
+    expect(isInvalidHref("/work-with-us/http//policies.google.com/privacy")).toBe(true);
   });
 
   it("returns false for normal paths", () => {
-    expect(isWhitespaceOnlyHref("/page")).toBe(false);
-    expect(isWhitespaceOnlyHref("/foo%20bar")).toBe(false);
+    expect(isInvalidHref("/page")).toBe(false);
   });
 });
 

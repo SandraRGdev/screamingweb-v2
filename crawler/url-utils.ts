@@ -61,18 +61,24 @@ export function resolveUrl(href: string, baseUrl: string): string | null {
 }
 
 /**
- * Detect href values that are effectively empty/whitespace-only after decoding.
- * This filters malformed links like "%20" or "/%20" that should not become crawlable URLs.
+ * Detect href values that should not be crawled.
+ *
+ * We reject:
+ * - empty or whitespace-only values
+ * - values containing raw whitespace
+ * - values containing encoded whitespace such as %20
+ * - malformed protocol-like strings such as "http//..."
  */
-export function isWhitespaceOnlyHref(href: string): boolean {
+export function isInvalidHref(href: string): boolean {
   const trimmed = href.trim();
   if (!trimmed) return true;
 
-  try {
-    return decodeURIComponent(trimmed).replace(/[\/?#&=]+/g, " ").trim() === "";
-  } catch {
-    return false;
-  }
+  const lower = trimmed.toLowerCase();
+  if (/\s/.test(trimmed)) return true;
+  if (/%(20|09|0a|0b|0c|0d)/i.test(trimmed)) return true;
+  if (lower.includes("http//") || lower.includes("https//")) return true;
+
+  return false;
 }
 
 /** Check if a content-type header indicates HTML */
