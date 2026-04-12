@@ -7,6 +7,7 @@ import { columns } from "./table/columns";
 import { TableToolbar } from "./table/table-toolbar";
 import { TableFilters } from "./table/table-filters";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   ChevronLeft,
   ChevronRight,
@@ -46,22 +47,6 @@ export function CrawlResultsTable({
     }
     return [...langs].sort();
   }, [results]);
-
-  // Extract base path for grouping (removes language prefix like /ca/, /en/, etc.)
-  const getBasePath = (url: string): string => {
-    try {
-      const parsed = new URL(url);
-      const pathParts = parsed.pathname.split('/').filter(Boolean);
-      // Remove language prefix if it's a language code
-      const langCodes = ['es', 'ca', 'en', 'fr', 'de', 'it', 'pt'];
-      if (pathParts.length > 0 && langCodes.includes(pathParts[0])) {
-        return pathParts.slice(1).join('/');
-      }
-      return parsed.pathname;
-    } catch {
-      return url;
-    }
-  };
 
   const resetPage = () => setPageIndex(0);
 
@@ -117,40 +102,44 @@ export function CrawlResultsTable({
   };
 
   return (
-    <div className="space-y-4">
-      <TableToolbar
-        search={search}
-        onSearchChange={(v) => {
-          setSearch(v);
-          resetPage();
-        }}
-        resultCount={filteredData.length}
-        onExportCsv={() => exportCsv(filteredData)}
-        onExportJson={() => exportJson(filteredData)}
-        onCopyUrls={handleCopyUrls}
-        filters={
-          <TableFilters
-            statusFilter={statusFilter}
-            onStatusFilterChange={(v) => { setStatusFilter(v); resetPage(); }}
-            uniqueStatuses={uniqueStatuses}
-            indexableFilter={indexableFilter}
-            onIndexableFilterChange={(v) => { setIndexableFilter(v); resetPage(); }}
-            langFilter={langFilter}
-            onLangFilterChange={(v) => { setLangFilter(v); resetPage(); }}
-            uniqueLangs={uniqueLangs}
-            onClearFilters={clearFilters}
-          />
-        }
-      />
+    <Card className="overflow-hidden border-border/60 bg-card/85 shadow-[0_22px_60px_-40px_rgba(15,23,42,0.32)]">
+      <div className="border-b border-border/60 bg-gradient-to-r from-background via-primary/5 to-background p-4 sm:p-5">
+        <TableToolbar
+          search={search}
+          onSearchChange={(v) => {
+            setSearch(v);
+            resetPage();
+          }}
+          resultCount={filteredData.length}
+          onExportCsv={() => exportCsv(filteredData)}
+          onExportJson={() => exportJson(filteredData)}
+          onCopyUrls={handleCopyUrls}
+          filters={
+            <TableFilters
+              statusFilter={statusFilter}
+              onStatusFilterChange={(v) => { setStatusFilter(v); resetPage(); }}
+              uniqueStatuses={uniqueStatuses}
+              indexableFilter={indexableFilter}
+              onIndexableFilterChange={(v) => { setIndexableFilter(v); resetPage(); }}
+              langFilter={langFilter}
+              onLangFilterChange={(v) => { setLangFilter(v); resetPage(); }}
+              uniqueLangs={uniqueLangs}
+              onClearFilters={clearFilters}
+            />
+          }
+        />
+      </div>
 
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        sorting={sorting}
-        onSortingChange={setSorting}
-      />
+      <div className="p-4 sm:p-5">
+        <DataTable
+          columns={columns}
+          data={paginatedData}
+          sorting={sorting}
+          onSortingChange={setSorting}
+        />
+      </div>
 
-      <div className="flex items-center justify-end gap-1">
+      <div className="flex items-center justify-end gap-1 border-t border-border/60 bg-muted/30 p-4 sm:p-5">
         <Button
           variant="outline"
           size="icon"
@@ -167,7 +156,7 @@ export function CrawlResultsTable({
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm px-2" aria-live="polite">
+        <span className="rounded-full bg-background px-3 py-1 text-sm font-medium shadow-sm" aria-live="polite">
           Página {safePageIndex + 1} de {totalPages}
         </span>
         <Button
@@ -187,6 +176,6 @@ export function CrawlResultsTable({
           <ChevronsRight className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }

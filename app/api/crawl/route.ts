@@ -20,11 +20,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { url, maxDepth, maxPages, useJs, respectRobotsTxt } = parsed.data;
+  const { url, maxDepth, maxPages, useJs, respectRobotsTxt, crawlScope } = parsed.data;
 
   // Create in-memory session with abort controller
   const session = createSession(
-    { maxDepth, maxPages, useJs, respectRobotsTxt },
+    { maxDepth, maxPages, useJs, respectRobotsTxt, crawlScope },
     url,
   );
 
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
           maxPages,
           useJs,
           respectRobotsTxt,
+          crawlScope,
           signal: session.abortController?.signal,
         });
 

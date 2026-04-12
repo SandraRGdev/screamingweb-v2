@@ -20,48 +20,50 @@ export function CrawlSummary({ results }: { results: CrawlResult[] }) {
       label: "URLs totales",
       value: total,
       icon: Globe,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      border: "border-blue-200",
+      color: "text-slate-800",
+      bg: "from-slate-50 to-white",
+      border: "border-slate-200",
     },
     {
       label: "Indexables",
       value: indexable,
       icon: CheckCircle2,
-      color: "text-green-700",
-      bg: "bg-green-50",
-      border: "border-green-200",
+      color: "text-emerald-700",
+      bg: "from-emerald-50 to-white",
+      border: "border-emerald-200",
     },
     {
       label: "No indexables",
       value: nonIndexable,
       icon: Ban,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
+      color: "text-amber-700",
+      bg: "from-amber-50 to-white",
       border: "border-amber-200",
     },
     {
       label: "Errores",
       value: errors,
       icon: AlertTriangle,
-      color: "text-red-600",
-      bg: "bg-red-50",
-      border: "border-red-200",
+      color: "text-rose-700",
+      bg: "from-rose-50 to-white",
+      border: "border-rose-200",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <Card
             key={stat.label}
-            className={`p-4 ${stat.bg} border ${stat.border}`}
+            className={`border ${stat.border} bg-gradient-to-br ${stat.bg} p-4 shadow-[0_16px_40px_-30px_rgba(15,23,42,0.28)] transition-transform hover:-translate-y-0.5`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <Icon className={`h-4 w-4 ${stat.color}`} />
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className={`rounded-lg bg-background/70 p-1.5 ${stat.color}`}>
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 {stat.label}
               </span>
             </div>

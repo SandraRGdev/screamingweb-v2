@@ -14,6 +14,7 @@ export interface CrawlerConfig {
   maxPages: number;
   userAgent: string;
   sameDomainOnly: boolean;
+  crawlScope: "site" | "section";
   blockedExtensions: Set<string>;
   /** Use Playwright for all pages (force JS rendering) */
   useJs: boolean;

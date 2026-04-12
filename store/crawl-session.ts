@@ -10,6 +10,7 @@ export interface CrawlSession {
     maxPages: number;
     useJs: boolean;
     respectRobotsTxt: boolean;
+    crawlScope: "site" | "section";
   };
   results: CrawlResult[];
   stats: {

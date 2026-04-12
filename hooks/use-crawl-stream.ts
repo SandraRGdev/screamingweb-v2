@@ -30,6 +30,15 @@ const INITIAL_STATE: CrawlStreamState = {
   error: null,
 };
 
+export interface CrawlOptions {
+  url: string;
+  maxDepth: number;
+  maxPages: number;
+  useJs: boolean;
+  respectRobotsTxt: boolean;
+  crawlScope: "site" | "section";
+}
+
 /** Extract a human-readable error from zod flatten() or plain error shapes */
 function extractErrorMessage(body: unknown): string {
   if (!body || typeof body !== "object") return "Failed to start crawl";
@@ -51,7 +60,7 @@ export function useCrawlStream() {
   const resultsRef = useRef<CrawlResult[]>([]);
 
   const startCrawl = useCallback(
-    async (options: { url: string; maxDepth: number; maxPages: number; useJs: boolean; respectRobotsTxt: boolean }) => {
+    async (options: CrawlOptions) => {
       abortRef.current?.abort();
       abortRef.current = new AbortController();
       resultsRef.current = [];

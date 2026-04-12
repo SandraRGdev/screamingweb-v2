@@ -12,6 +12,49 @@ import { parseHtml } from "./parser";
 import { fetchRobotsTxt, waitForCrawlDelay } from "./robots";
 import { fetchSitemap } from "./sitemap";
 
+const LANGUAGE_BATCH_THRESHOLD = 1000;
+const LANGUAGE_BATCH_SIZE = 200;
+const DEFAULT_LANGUAGE_GROUP = "__default__";
+
+function getScopePrefix(seedUrl: string): string {
+  try {
+    const pathname = new URL(seedUrl).pathname || "/";
+    if (pathname === "/") return "/";
+    return pathname.replace(/\/$/, "");
+  } catch {
+    return "/";
+  }
+}
+
+function normalizeLanguageGroup(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() || DEFAULT_LANGUAGE_GROUP;
+}
+
+function detectLanguageFromUrl(url: string): string | null {
+  try {
+    const [firstSegment] = new URL(url).pathname.split("/").filter(Boolean);
+    if (!firstSegment) return null;
+
+    if (/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i.test(firstSegment)) {
+      return firstSegment.toLowerCase();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function isWithinScope(url: string, scopePrefix: string): boolean {
+  if (scopePrefix === "/") return true;
+  try {
+    const pathname = new URL(url).pathname.replace(/\/$/, "") || "/";
+    return pathname === scopePrefix || pathname.startsWith(`${scopePrefix}/`);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * BFS crawler as an async generator. Yields ParsedResult for each page.
  * Stops when queue is empty, maxPages reached, maxDepth exceeded, or signal aborted.
@@ -21,19 +64,85 @@ export async function* crawlGenerator(
 ): AsyncGenerator<ParsedResult> {
   const seedDomain = getDomain(config.seedUrl);
   const seedNormalized = normalizeUrl(config.seedUrl);
-
-  const queue: Array<{
+  const scopePrefix = getScopePrefix(config.seedUrl);
+  const queueBuckets = new Map<string, Array<{
     url: string;
     depth: number;
     discoveredFrom: string | null;
-  }> = [{ url: seedNormalized, depth: 0, discoveredFrom: null }];
-
+  }>>();
+  const queueOrder: string[] = [];
   const visited = new Set<string>();
   const queued = new Set<string>([seedNormalized]);
   const yielded = new Set<string>();
+  let activeLanguageGroup: string | null = null;
+  let activeLanguageBatchCount = 0;
+  const activeLanguageBatchSize =
+    config.maxPages >= LANGUAGE_BATCH_THRESHOLD ? LANGUAGE_BATCH_SIZE : Number.POSITIVE_INFINITY;
 
   // Track URL discovery count to debug duplicates
   const discoveryCount = new Map<string, number>();
+
+  const enqueue = (
+    item: { url: string; depth: number; discoveredFrom: string | null },
+    group: string,
+  ) => {
+    const normalizedGroup = normalizeLanguageGroup(group);
+    const bucket = queueBuckets.get(normalizedGroup);
+    if (bucket) {
+      bucket.push(item);
+      return;
+    }
+
+    queueBuckets.set(normalizedGroup, [item]);
+    queueOrder.push(normalizedGroup);
+  };
+
+  const removeGroup = (group: string) => {
+    queueBuckets.delete(group);
+    const index = queueOrder.indexOf(group);
+    if (index >= 0) {
+      queueOrder.splice(index, 1);
+    }
+    if (activeLanguageGroup === group) {
+      activeLanguageGroup = null;
+      activeLanguageBatchCount = 0;
+    }
+  };
+
+  const takeNextItem = () => {
+    if (queueOrder.length === 0) return null;
+
+    const currentIndex = activeLanguageGroup
+      ? queueOrder.indexOf(activeLanguageGroup)
+      : -1;
+
+    if (activeLanguageGroup && currentIndex !== -1) {
+      const currentBucket = queueBuckets.get(activeLanguageGroup);
+      if (currentBucket?.length && activeLanguageBatchCount < activeLanguageBatchSize) {
+        activeLanguageBatchCount++;
+        const item = currentBucket.shift()!;
+        if (currentBucket.length === 0) removeGroup(activeLanguageGroup);
+        return item;
+      }
+    }
+
+    for (let offset = 0; offset < queueOrder.length; offset++) {
+      const index = currentIndex === -1
+        ? offset
+        : (currentIndex + offset + 1) % queueOrder.length;
+      const group = queueOrder[index];
+      const bucket = queueBuckets.get(group);
+      if (!bucket?.length) continue;
+
+      activeLanguageGroup = group;
+      activeLanguageBatchCount = 1;
+      const item = bucket.shift()!;
+      if (bucket.length === 0) removeGroup(group);
+      return item;
+    }
+
+    return null;
+  };
 
   console.log(`[CRAWL START] Seed: ${config.seedUrl}, MaxDepth: ${config.maxDepth}, MaxPages: ${config.maxPages}`);
 
@@ -42,6 +151,11 @@ export async function* crawlGenerator(
     ? await fetchRobotsTxt(config.seedUrl, config.userAgent)
     : null;
   const crawlDelay = robots?.getCrawlDelay() ?? 0;
+
+  enqueue(
+    { url: seedNormalized, depth: 0, discoveredFrom: null },
+    detectLanguageFromUrl(seedNormalized) ?? DEFAULT_LANGUAGE_GROUP,
+  );
 
   // Seed queue with sitemap URLs (discovered from robots.txt Sitemap: directives)
   if (robots) {
@@ -61,16 +175,17 @@ export async function* crawlGenerator(
           isSafeUrl(normalized)
         ) {
           queued.add(normalized);
-          queue.push({ url: normalized, depth: 0, discoveredFrom: "sitemap" });
+          enqueue({ url: normalized, depth: 0, discoveredFrom: "sitemap" }, DEFAULT_LANGUAGE_GROUP);
         }
       }
     }
   }
 
-  while (queue.length > 0 && visited.size < config.maxPages) {
+  while (visited.size < config.maxPages) {
     if (config.signal?.aborted) return;
 
-    const item = queue.shift()!;
+    const item = takeNextItem();
+    if (!item) break;
     const normalized = normalizeUrl(item.url);
 
     // Debug: check if URL was discovered multiple times
@@ -90,6 +205,7 @@ export async function* crawlGenerator(
     }
     if (item.depth > config.maxDepth) continue;
     if (config.sameDomainOnly && !isSameDomain(normalized, seedDomain)) continue;
+    if (config.crawlScope === "section" && !isWithinScope(normalized, scopePrefix)) continue;
     if (isBlockedExtension(normalized, config.blockedExtensions)) continue;
 
     // SSRF protection
@@ -124,22 +240,31 @@ export async function* crawlGenerator(
     yielded.add(finalUrl);
 
     const parsed = parseHtml(fetchResult, item.depth, seedDomain);
+    const pageGroup = normalizeLanguageGroup(
+      parsed.lang ?? detectLanguageFromUrl(parsed.url) ?? null,
+    );
 
     yield {
       ...parsed,
       url: finalUrl,
     };
 
-    console.log(`[CRAWL] Queue size: ${queue.length}, Visited: ${visited.size}, Queued Set: ${queued.size}`);
+    console.log(`[CRAWL] Queue groups: ${queueOrder.length}, Visited: ${visited.size}, Queued Set: ${queued.size}`);
     for (const link of parsed.internalLinks) {
       const linkNormalized = normalizeUrl(link);
       if (!visited.has(linkNormalized) && !queued.has(linkNormalized)) {
+        if (config.crawlScope === "section" && !isWithinScope(linkNormalized, scopePrefix)) {
+          continue;
+        }
         queued.add(linkNormalized);
-        queue.push({
-          url: linkNormalized,
-          depth: item.depth + 1,
-          discoveredFrom: normalized,
-        });
+        enqueue(
+          {
+            url: linkNormalized,
+            depth: item.depth + 1,
+            discoveredFrom: normalized,
+          },
+          detectLanguageFromUrl(linkNormalized) ?? pageGroup,
+        );
       }
     }
     queued.delete(normalized);
@@ -154,6 +279,7 @@ export function createConfig(partial: Partial<CrawlerConfig> = {}): CrawlerConfi
     maxPages: partial.maxPages ?? 500,
     userAgent: partial.userAgent || "ScreamingWeb/1.0",
     sameDomainOnly: partial.sameDomainOnly ?? true,
+    crawlScope: partial.crawlScope ?? "site",
     blockedExtensions: partial.blockedExtensions || DEFAULT_BLOCKED_EXTENSIONS,
     useJs: partial.useJs ?? false,
     respectRobotsTxt: partial.respectRobotsTxt ?? true,

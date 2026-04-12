@@ -8,32 +8,32 @@ const statusConfig = {
   connecting: {
     label: "Conectando...",
     icon: Loader2,
-    color: "text-blue-600",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-slate-700",
+    bg: "bg-slate-50 border-slate-200",
   },
   crawling: {
     label: "Rastreando...",
     icon: Loader2,
-    color: "text-blue-600",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-slate-700",
+    bg: "bg-slate-50 border-slate-200",
   },
   completed: {
     label: "Completado",
     icon: CheckCircle2,
-    color: "text-green-700",
-    bg: "bg-green-50 border-green-200",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50 border-emerald-200",
   },
   stopped: {
     label: "Detenido",
     icon: AlertCircle,
-    color: "text-amber-600",
+    color: "text-amber-700",
     bg: "bg-amber-50 border-amber-200",
   },
   error: {
     label: "Error",
     icon: XCircle,
-    color: "text-red-600",
-    bg: "bg-red-50 border-red-200",
+    color: "text-rose-700",
+    bg: "bg-rose-50 border-rose-200",
   },
 };
 
@@ -53,9 +53,9 @@ export function CrawlProgress({
 
   return (
     <div
-      className={`rounded-xl border p-5 ${config.bg} transition-colors`}
+      className={`rounded-2xl border border-border/60 bg-card/90 p-5 shadow-[0_18px_50px_-34px_rgba(15,23,42,0.28)] transition-colors ${status === "crawling" || status === "connecting" ? "ring-1 ring-primary/10" : ""}`}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon
             className={`h-5 w-5 ${config.color} ${status === "crawling" || status === "connecting" ? "animate-spin" : ""}`}
@@ -64,14 +64,18 @@ export function CrawlProgress({
             {config.label}
           </span>
         </div>
-        <span className="text-sm font-medium tabular-nums">
+        <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium tabular-nums text-foreground">
           {crawled} / {discovered}
         </span>
       </div>
-      <Progress value={progress} />
-      <div className="flex gap-2 mt-3">
-        <Badge variant="secondary">{crawled} rastreadas</Badge>
-        <Badge variant="outline">{discovered} descubiertas</Badge>
+      <Progress value={progress} className="h-2.5" />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Badge variant="secondary" className="rounded-full px-3 py-1">
+          {crawled} rastreadas
+        </Badge>
+        <Badge variant="outline" className="rounded-full px-3 py-1">
+          {discovered} descubiertas
+        </Badge>
       </div>
     </div>
   );

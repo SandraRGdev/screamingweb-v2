@@ -23,6 +23,7 @@ describe("crawlGenerator", () => {
           status: 200,
           contentType: "text/html",
           url: "https://example.com/",
+          method: "cheerio",
         };
       }
 
@@ -32,6 +33,7 @@ describe("crawlGenerator", () => {
           status: 200,
           contentType: "text/html",
           url: "https://example.com/ofertas/",
+          method: "cheerio",
         };
       }
 
@@ -41,6 +43,7 @@ describe("crawlGenerator", () => {
           status: 200,
           contentType: "text/html",
           url: "https://example.com/ofertas/",
+          method: "cheerio",
         };
       }
 
@@ -64,6 +67,122 @@ describe("crawlGenerator", () => {
     expect(results.map((page) => page.url)).toEqual([
       "https://example.com",
       "https://example.com/ofertas",
+    ]);
+  });
+
+  it("prioritizes pages by language and rotates in batches on large crawls", async () => {
+    const esLinks = Array.from({ length: 201 }, (_, index) => {
+      const page = index + 1;
+      return `<a href="/es/page-${page}">ES ${page}</a>`;
+    }).join("");
+    const enLink = '<a href="/en/page-1">EN 1</a>';
+
+    hybridFetchMock.mockImplementation(async (url: string) => {
+      if (url === "https://example.com") {
+        return {
+          html: `<html lang="es"><head><title>Home</title></head><body>${esLinks}${enLink}</body></html>`,
+          status: 200,
+          contentType: "text/html",
+          url: "https://example.com",
+          method: "cheerio",
+        };
+      }
+
+      if (url.startsWith("https://example.com/es/page-")) {
+        return {
+          html: '<html lang="es"><head><title>ES</title></head><body></body></html>',
+          status: 200,
+          contentType: "text/html",
+          url,
+          method: "cheerio",
+        };
+      }
+
+      if (url === "https://example.com/en/page-1") {
+        return {
+          html: '<html lang="en"><head><title>EN</title></head><body></body></html>',
+          status: 200,
+          contentType: "text/html",
+          url,
+          method: "cheerio",
+        };
+      }
+
+      return null;
+    });
+
+    const results: ParsedResult[] = [];
+    const config = createConfig({
+      seedUrl: "https://example.com",
+      maxDepth: 1,
+      maxPages: 1000,
+      respectRobotsTxt: false,
+    });
+
+    for await (const page of crawlGenerator(config)) {
+      results.push(page);
+    }
+
+    const urls = results.map((page) => page.url);
+    expect(urls[0]).toBe("https://example.com");
+    expect(urls.slice(1, 201)).toEqual(
+      Array.from({ length: 200 }, (_, index) => `https://example.com/es/page-${index + 1}`),
+    );
+    expect(urls[201]).toBe("https://example.com/en/page-1");
+    expect(urls[202]).toBe("https://example.com/es/page-201");
+  });
+
+  it("limits crawl to the seed path when section scope is enabled", async () => {
+    hybridFetchMock.mockImplementation(async (url: string) => {
+      if (url === "https://mediumhoteles.com/ca") {
+        return {
+          html: '<html lang="ca"><head><title>CA Home</title></head><body><a href="/ca/habitaciones">CA</a><a href="/fr/chambres">FR</a></body></html>',
+          status: 200,
+          contentType: "text/html",
+          url: "https://mediumhoteles.com/ca/",
+          method: "cheerio",
+        };
+      }
+
+      if (url === "https://mediumhoteles.com/ca/habitaciones") {
+        return {
+          html: '<html lang="ca"><head><title>CA Rooms</title></head><body></body></html>',
+          status: 200,
+          contentType: "text/html",
+          url,
+          method: "cheerio",
+        };
+      }
+
+      if (url === "https://mediumhoteles.com/fr/chambres") {
+        return {
+          html: '<html lang="fr"><head><title>FR Rooms</title></head><body></body></html>',
+          status: 200,
+          contentType: "text/html",
+          url,
+          method: "cheerio",
+        };
+      }
+
+      return null;
+    });
+
+    const results: ParsedResult[] = [];
+    const config = createConfig({
+      seedUrl: "https://mediumhoteles.com/ca/",
+      maxDepth: 2,
+      maxPages: 10,
+      respectRobotsTxt: false,
+      crawlScope: "section",
+    });
+
+    for await (const page of crawlGenerator(config)) {
+      results.push(page);
+    }
+
+    expect(results.map((page) => page.url)).toEqual([
+      "https://mediumhoteles.com/ca",
+      "https://mediumhoteles.com/ca/habitaciones",
     ]);
   });
 });
